@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Reader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .content {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #4a90e2;
+        }
+        .upload-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 80%;
+            max-width: 300px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4a90e2;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #357ab8;
+        }
+        .pagination {
+            margin: 20px 0;
+            text-align: center;
+        }
+        #fileContent {
+            white-space: pre-wrap;
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            overflow: auto;
+            max-height: 400px; /* Limit height for scrolling */
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <h1>File Reader</h1>
+        
+        <div class="upload-section">
+            <p>Currently showing sample file. You can also upload your own:</p>
+            <input type="file" id="fileInput" accept=".txt">
+            <button onclick="uploadFile()">Upload</button>
+        </div>
+
+        <div id="readerSection">
+            <div class="pagination">
+                <button onclick="previousPage()" id="prevBtn">Previous</button>
+                <span id="pageInfo">Page 1</span>
+                <button onclick="nextPage()" id="nextBtn">Next</button>
+            </div>
+            <div id="fileContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentFileId = 'sample.txt';  // Default to sample file
+        let socket = null;
+
+        // Initialize WebSocket when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeWebSocket();
+        });
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentFileId = data.file_id;
+                    initializeWebSocket();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Upload failed');
+            });
+        }
+
+        function initializeWebSocket() {
+            if (socket) {
+                socket.close();
+            }
+
+            socket = new WebSocket('ws://' + window.location.host + '/ws/reader/');
+
+            socket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                if (data.status === 'success') {
+                    document.getElementById('fileContent').innerHTML = data.lines.join('\n');
+                    document.getElementById('pageInfo').textContent = `Page ${data.page} of ${data.total_pages}`;
+                    totalPages = data.total_pages;
+                    updateButtonStates();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            };
+
+            socket.onopen = function(e) {
+                loadPage(1);
+            };
+        }
+
+        function loadPage(page) {
+            if (socket && currentFileId) {
+                socket.send(JSON.stringify({
+                    'page': page,
+                    'lines_per_page': 100,
+                    'file_id': currentFileId
+                }));
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadPage(currentPage);
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadPage(currentPage);
+            }
+        }
+
+        function updateButtonStates() {
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+        }
+    </script>
+</body>
+</html>
