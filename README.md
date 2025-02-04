@@ -14,37 +14,43 @@ A Django application that efficiently reads large text files using WebSocket-bas
 
 ## Installation
 
-1. Clone the repository:
-2. bash
-git clone <repository-url>
-cd file_reader
-2. Create and activate virtual environment:
-3. bash
-python -m venv venv
-source venv/bin/activate # On Windows: venv\Scripts\activate
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd file_reader
+   ```
 
-3. Install dependencies:
-4. bash
-pip install -r requirements.txt
+2. **Create and activate a virtual environment:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-4. Run migrations:
-5. bash
-python manage.py migrate
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Run migrations:**
+   ```bash
+   python manage.py migrate
+   ```
 
 ## Running the Application
 
-1. Start the Daphne server:
-2. bash
-daphne file_reader.asgi:application --port 8000
+1. **Start the Daphne server:**
+   ```bash
+   daphne file_reader.asgi:application --port 8000
+   ```
 
-
-2. Open your browser and visit:
+2. **Open your browser and visit:**  
+   `http://localhost:8000` (or the appropriate URL if hosted elsewhere)
 
 ## Usage
-1. Click "Choose File" to select a text file
-2. Click "Upload" to upload the file
-3. Use "Previous" and "Next" buttons to navigate through pages
-4. Each page displays 100 lines of text
+1. Click "Choose File" to select a text file.
+2. Click "Upload" to upload the file.
+3. Use "Previous" and "Next" buttons to navigate through pages.
+4. Each page displays 100 lines of text.
 
 ## Project Structure
 
