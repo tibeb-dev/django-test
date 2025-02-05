@@ -2,6 +2,7 @@ import json
 from channels.generic.websocket import WebsocketConsumer
 from django.conf import settings
 import os
+from itertools import islice
 
 class FileReaderConsumer(WebsocketConsumer):
     def connect(self):
@@ -12,19 +13,16 @@ class FileReaderConsumer(WebsocketConsumer):
 
     def read_file_chunk(self, file_path, page_number, lines_per_page=100):
         start_line = (page_number - 1) * lines_per_page
-        end_line = start_line + lines_per_page
-        current_line = 0
-        chunk_lines = []
         
         with open(file_path, 'r') as file:
-            for line in file:
-                if current_line >= start_line and current_line < end_line:
-                    chunk_lines.append(line.strip())
-                elif current_line >= end_line:
-                    break
-                current_line += 1
-                
-        return chunk_lines
+            # Skip to start_line efficiently and read lines_per_page lines
+            return [line.strip() for line in islice(file, start_line, start_line + lines_per_page)]
+
+    def get_total_lines(self, file_path):
+        # Use a buffer to count lines efficiently
+        with open(file_path, 'rb') as f:
+            lines = sum(1 for _ in f)
+        return lines
 
     def receive(self, text_data):
         data = json.loads(text_data)
@@ -35,7 +33,7 @@ class FileReaderConsumer(WebsocketConsumer):
         try:
             file_path = os.path.join(settings.MEDIA_ROOT, file_id)
             lines = self.read_file_chunk(file_path, page, lines_per_page)
-            total_lines = sum(1 for _ in open(file_path))
+            total_lines = self.get_total_lines(file_path)
             total_pages = (total_lines + lines_per_page - 1) // lines_per_page
             
             self.send(text_data=json.dumps({
